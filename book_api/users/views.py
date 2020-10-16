@@ -1,15 +1,15 @@
 from django.http import JsonResponse
-from .models import User
+from .models import Account
 from books.views import get_all_books, get_book_detail
 
 
 def get_all_users(request):
-    users = User.objects.all()
+    users = Account.objects.all()
     return JsonResponse({user.id: user.name for user in users})
 
 
 def get_user_detail(request, user_id):
-    user = User.objects.get(pk=user_id)
+    user = Account.objects.get(pk=user_id)
     return JsonResponse(
         {
             'name': user.name,
@@ -23,11 +23,11 @@ def get_books(request, user_id):
 
 
 def get_book(request, user_id, book_id):
-    user = User.objects.get(pk=user_id)
-    if not user.subscription_status:
+    user = Account.objects.get(pk=user_id)
+    if not user.subscription_is_active():
         return JsonResponse(
                 {
-                    'error': 'Для доступа к книге оплатите подписку'
+                    'error': 'To access the book, pay for a subscription'
                 }
             )
     book = get_book_detail(request, book_id)

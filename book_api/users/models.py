@@ -7,7 +7,7 @@ def add_subscription(current, **kwargs):
     return current + delta
 
 
-class User(models.Model):
+class Account(models.Model):
     name = models.CharField(
         max_length=50
     )
@@ -18,3 +18,5 @@ class User(models.Model):
         default=True
     )
 
+    def subscription_is_active(self):
+        return self.subscription_end >= date.today()
