@@ -129,3 +129,4 @@ dmypy.json
 .pyre/
 /book_api/users/migrations/
 /book_api/books/migrations/
+/book_api/config.conf
