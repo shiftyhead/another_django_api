@@ -14,9 +14,6 @@ class Account(models.Model):
     subscription_end = models.DateField(
         default=add_subscription(date.today(), weeks=2)
     )
-    subscription_status = models.BooleanField(
-        default=True
-    )
 
     def subscription_is_active(self):
         return self.subscription_end >= date.today()

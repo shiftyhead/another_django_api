@@ -1,21 +1,27 @@
+import json
+
+from django.core import serializers
 from django.http import JsonResponse
 from .models import Account
 from books.views import get_all_books, get_book_detail
 
 
+def build_result(data):
+    return {item['pk']: item['fields'] for item in json.loads(data)}
+
+
 def get_all_users(request):
     users = Account.objects.all()
-    return JsonResponse({user.id: user.name for user in users})
+    data = serializers.serialize('json', users)
+    result_data = build_result(data)
+    return JsonResponse(result_data)
 
 
 def get_user_detail(request, user_id):
     user = Account.objects.get(pk=user_id)
-    return JsonResponse(
-        {
-            'name': user.name,
-            'subscription_status': user.subscription_status
-        }
-    )
+    data = serializers.serialize('json', [user, ])
+    result_data = build_result(data)[user_id]
+    return JsonResponse(result_data)
 
 
 def get_books(request, user_id):
