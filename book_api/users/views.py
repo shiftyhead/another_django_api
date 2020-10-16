@@ -1,6 +1,7 @@
 import json
 
 from django.core import serializers
+from django.core.exceptions import ObjectDoesNotExist
 from django.http import JsonResponse
 from .models import Account
 from books.views import get_all_books, get_book_detail
@@ -39,3 +40,68 @@ def get_book(request, user_id, book_id):
     book = get_book_detail(request, book_id)
     return book
 
+
+def create_user(request):
+    if request.method != 'POST':
+        return JsonResponse({})
+    data = json.loads(request.body)
+    try:
+        new_user = Account(**data)
+    except TypeError:
+        return JsonResponse(
+            {
+                'status': 'error',
+                'msg': 'Check your data'
+            }
+        )
+    new_user.save()
+    return JsonResponse(
+        {
+            'status': 'success',
+            'msg': f'User ID {new_user.id} created'
+        }
+    )
+
+
+def pay_subscription(request):
+    if request.method != 'POST':
+        return JsonResponse({})
+    data = json.loads(request.body)
+    status = data.get('status')
+    if status == 'ok':
+        user_id = data.get('user_id')
+        try:
+            user = Account.objects.get(pk=user_id)
+        except ObjectDoesNotExist:
+            return JsonResponse(
+                {
+                    'status': 'error',
+                    'msg': f'User ID {user_id} does not exist'
+                }
+            )
+        period = data.get('period')
+        new_value = user.subscription_end
+
+        if period == 'year':
+            new_value = new_value.replace(year=new_value.year + 1)
+        elif period == 'month':
+            try:
+                new_value = new_value.replace(month=new_value.month + 1)
+            except ValueError:
+                new_value = new_value.replace(year=new_value.year + 1).replace(month=1)
+        user.subscription_end = new_value
+        user.save()
+        return JsonResponse(
+            {
+                'status': 'success',
+                'msg': f'Subscription extended until {user.subscription_end}'
+            }
+        )
+    else:
+        error = data.get('msg')
+        return JsonResponse(
+            {
+                'status': 'error',
+                'msg': f'Subscription not renewed because "{error}"'
+            }
+        )
