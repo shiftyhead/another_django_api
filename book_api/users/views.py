@@ -1,4 +1,5 @@
 import json
+from datetime import date, timedelta
 
 from django.core import serializers
 from django.core.exceptions import ObjectDoesNotExist
@@ -13,7 +14,7 @@ def build_result(data):
 
 def get_all_users(request):
     users = Account.objects.all()
-    data = serializers.serialize('json', users)
+    data = serializers.serialize('json', users, fields=['name', ])
     result_data = build_result(data)
     return JsonResponse(result_data)
 
@@ -47,6 +48,7 @@ def create_user(request):
     data = json.loads(request.body)
     try:
         new_user = Account(**data)
+        new_user.subscription_end = update_subscription(date.today(), 'trial')
     except TypeError:
         return JsonResponse(
             {
@@ -61,6 +63,21 @@ def create_user(request):
             'msg': f'User ID {new_user.id} created'
         }
     )
+
+
+def update_subscription(current_subscription_end, period):
+    new_value = current_subscription_end
+
+    if period == 'year':
+        new_value = new_value.replace(year=new_value.year + 1)
+    elif period == 'month':
+        try:
+            new_value = new_value.replace(month=new_value.month + 1)
+        except ValueError:
+            new_value = new_value.replace(year=new_value.year + 1).replace(month=1)
+    elif period == 'trial':
+        new_value += timedelta(weeks=2)
+    return new_value
 
 
 def pay_subscription(request):
@@ -80,16 +97,8 @@ def pay_subscription(request):
                 }
             )
         period = data.get('period')
-        new_value = user.subscription_end
 
-        if period == 'year':
-            new_value = new_value.replace(year=new_value.year + 1)
-        elif period == 'month':
-            try:
-                new_value = new_value.replace(month=new_value.month + 1)
-            except ValueError:
-                new_value = new_value.replace(year=new_value.year + 1).replace(month=1)
-        user.subscription_end = new_value
+        user.subscription_end = update_subscription(user.subscription_end, period)
         user.save()
         return JsonResponse(
             {
