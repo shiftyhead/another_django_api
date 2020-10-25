@@ -1,4 +1,3 @@
-import json
 from datetime import date, timedelta
 from django.test import TestCase, Client
 
@@ -9,20 +8,17 @@ class AccountTestCase(TestCase):
 
     def test_creation(self):
         user_data = {'name': 'Maria', 'birthday': '2002-10-30'}
-        response = self.client.post('/users/new/', user_data, content_type='application/json')
-        self.assertEqual(response.status_code, 200)
+        creation_response = self.client.post('/users/new/', user_data, content_type='application/json')
+        self.assertEqual(creation_response.status_code, 200)
 
-        response_json = json.loads(response.content)
-        self.assertEqual(response_json.get('status'), 'success')
-        new_user_id = response_json.get('user_id')
+        creation_response_data = creation_response.json()
+        self.assertEqual(creation_response_data['status'], 'success')
 
-        new_user_data = self.client.get(f'/users/{new_user_id}/')
-        new_user_data_json = json.loads(new_user_data.content.decode())
+        new_user_id = creation_response_data['user_id']
+        new_user_response = self.client.get(f'/users/{new_user_id}/')
+        new_user_data = new_user_response.json()
         for field, value in user_data.items():
-            self.assertEqual(
-                new_user_data_json.get(field),
-                value
-            )
+            self.assertEqual(new_user_data[field], value)
     
     def test_creation_wrong(self):
         wrong_data = [
@@ -30,10 +26,10 @@ class AccountTestCase(TestCase):
             {'name': 'Petr', 'birthday': '2002-14-30'},
         ]
         for user_data in wrong_data:
-            response = self.client.post('/users/new/', user_data, content_type='application/json')
-            self.assertEqual(response.status_code, 200)
-            response_json = json.loads(response.content)
-            self.assertEqual(response_json.get('status'), 'error')
+            creation_response = self.client.post('/users/new/', user_data, content_type='application/json')
+            self.assertEqual(creation_response.status_code, 200)
+            creation_response_data = creation_response.json()
+            self.assertEqual(creation_response_data['status'], 'error')
 
     def test_user_subscription(self):
         users_data = [
@@ -41,11 +37,13 @@ class AccountTestCase(TestCase):
             {'name': 'Cheater', 'birthday': '2000-12-20', 'subscription_end': '3000-12-31'},
         ]
         for user_data in users_data:
-            response = self.client.post('/users/new/', user_data, content_type='application/json')
+            creation_response = self.client.post('/users/new/', user_data, content_type='application/json')
+            creation_response_data = creation_response.json()
 
-            response_json = json.loads(response.content)
-            new_user_id = response_json.get('user_id')
-            new_user_data = self.client.get(f'/users/{new_user_id}/')
-            new_user_data_json = json.loads(new_user_data.content.decode())
-
-            self.assertEqual(new_user_data_json.get('subscription_end'), str(self.correct_trial))
+            new_user_id = creation_response_data['user_id']
+            new_user_response = self.client.get(f'/users/{new_user_id}/')
+            new_user_response_data = new_user_response.json()
+            self.assertEqual(
+                new_user_response_data['subscription_end'],
+                str(self.correct_trial)
+            )
