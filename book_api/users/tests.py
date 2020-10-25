@@ -1,28 +1,29 @@
 import json
-from collections import namedtuple
-
 from datetime import date, timedelta
-from django.test import TestCase
-
-from .views import create_user, get_user_detail
+from django.test import TestCase, Client
 
 
 class AccountTestCase(TestCase):
+    correct_trial = date.today() + timedelta(weeks=2)
 
-    def test_account_creation(self):
-        Request = namedtuple('Request', ['method', 'body'])
-        correct_trial = date.today() + timedelta(weeks=2)
+    def test_creation(self):
+        user_data = {"name": "Maria", "birthday": "2002-10-30"}
+        c = Client()
+        response = c.post(
+            '/users/new/',
+            user_data,
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 200)
 
-        request = Request('POST', '{"name": "Maria", "birthday": "2002-10-30"}')
-        create_user(request)
+        response_json = json.loads(response.content)
+        self.assertEqual(response_json.get('status'), 'success')
+        new_user_id = response_json.get('user_id')
 
-        maria = get_user_detail('', 1)
-        content = json.loads(maria.content.decode())
-        self.assertEqual(content.get('subscription_end'), str(correct_trial))
-
-        request = Request('POST', '{"name": "Cheater", "birthday": "2002-10-30", "subscription_end": "3002-10-30"}')
-        create_user(request)
-
-        cheater = get_user_detail('', 2)
-        content = json.loads(cheater.content.decode())
-        self.assertEqual(content.get('subscription_end'), str(correct_trial))
+        new_user_data = c.get(f'/users/{new_user_id}/')
+        new_user_data_json = json.loads(new_user_data.content.decode())
+        for field, value in user_data.items():
+            self.assertEqual(
+                new_user_data_json.get(field),
+                value
+            )

@@ -60,7 +60,8 @@ def create_user(request):
     return JsonResponse(
         {
             'status': 'success',
-            'msg': f'User ID {new_user.id} created'
+            'msg': 'User created',
+            'user_id': new_user.id
         }
     )
 
