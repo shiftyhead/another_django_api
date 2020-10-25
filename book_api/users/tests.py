@@ -7,7 +7,7 @@ class AccountTestCase(TestCase):
     correct_trial = date.today() + timedelta(weeks=2)
 
     def test_creation(self):
-        user_data = {"name": "Maria", "birthday": "2002-10-30"}
+        user_data = {'name': 'Maria', 'birthday': '2002-10-30'}
         c = Client()
         response = c.post(
             '/users/new/',
@@ -27,3 +27,19 @@ class AccountTestCase(TestCase):
                 new_user_data_json.get(field),
                 value
             )
+    
+    def test_creation_wrong(self):
+        wrong_data = [
+            {'na!!e': 'Ivan', 'birthday': '2002-12-30'},
+            {'name': 'Ivan', 'birthday': '2002-14-30'},
+        ]
+        c = Client()
+        for user_data in wrong_data:
+            response = c.post(
+                '/users/new/',
+                user_data,
+                content_type='application/json'
+            )
+            self.assertEqual(response.status_code, 200)
+            response_json = json.loads(response.content)
+            self.assertEqual(response_json.get('status'), 'error')
