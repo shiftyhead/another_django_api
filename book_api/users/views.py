@@ -2,7 +2,7 @@ import json
 from datetime import date, timedelta
 
 from django.core import serializers
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.http import JsonResponse
 from .models import Account
 from books.views import get_all_books, get_book_detail
@@ -49,18 +49,20 @@ def create_user(request):
     try:
         new_user = Account(**data)
         new_user.subscription_end = update_subscription(date.today(), 'trial')
-    except TypeError:
+        new_user.save()
+    except (TypeError, ValidationError):
         return JsonResponse(
             {
                 'status': 'error',
                 'msg': 'Check your data'
             }
         )
-    new_user.save()
+
     return JsonResponse(
         {
             'status': 'success',
-            'msg': f'User ID {new_user.id} created'
+            'msg': 'User created',
+            'user_id': new_user.id
         }
     )
 
