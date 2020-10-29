@@ -89,3 +89,23 @@ class AccountTestCase(TestCase):
             self.assertEqual(len(books), n)
             book = Book(title='book', text='...', author='username', cost=n)
             book.save()
+
+    def test_get_book(self):
+        book = Book(title='War', text='War...', author='L.N.', cost=1000.0)
+        book.save()
+
+        new_user_id = self.create_correct_user(self.correct_user_data)
+        book_response = self.client.get(f'/users/{new_user_id}/books/1/')
+        book_response_data = book_response.json()
+
+        self.assertEqual(book_response_data['title'], book.title)
+        self.assertEqual(book_response_data['text'], book.text)
+        self.assertEqual(book_response_data['author'], book.author)
+
+        new_user_entity = Account.objects.get(pk=new_user_id)
+        new_user_entity.subscription_end = date.today() - timedelta(days=1)
+        new_user_entity.save()
+
+        book_response = self.client.get(f'/users/{new_user_id}/books/1/')
+        book_response_data = book_response.json()
+        self.assertIn('error', book_response_data)
