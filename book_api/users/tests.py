@@ -2,6 +2,7 @@ from datetime import date, timedelta
 from django.test import TestCase, Client
 
 from .models import Account
+from books.models import Book
 
 
 class AccountTestCase(TestCase):
@@ -39,10 +40,7 @@ class AccountTestCase(TestCase):
             {'name': 'Cheater', 'birthday': '2000-12-20', 'subscription_end': '3000-12-31'},
         ]
         for user_data in users_data:
-            creation_response = self.client.post('/users/new/', user_data, content_type='application/json')
-            creation_response_data = creation_response.json()
-
-            new_user_id = creation_response_data['user_id']
+            new_user_id = self.create_correct_user(user_data)
             new_user_response = self.client.get(f'/users/{new_user_id}/')
             new_user_response_data = new_user_response.json()
             self.assertEqual(
@@ -50,10 +48,14 @@ class AccountTestCase(TestCase):
                 str(date.today() + timedelta(weeks=2))
             )
 
-    def test_pay_month_subscription(self):
-        creation_response = self.client.post('/users/new/', self.correct_user_data, content_type='application/json')
+    def create_correct_user(self, user_data):
+        creation_response = self.client.post('/users/new/', user_data, content_type='application/json')
         creation_response_data = creation_response.json()
         new_user_id = creation_response_data['user_id']
+        return new_user_id
+
+    def test_pay_month_subscription(self):
+        new_user_id = self.create_correct_user(self.correct_user_data)
 
         new_user_entity = Account.objects.get(pk=new_user_id)
         new_user_entity.subscription_end = date(2020, 12, 5)
@@ -78,3 +80,12 @@ class AccountTestCase(TestCase):
             users = self.client.get('/users/').json()
             self.assertEqual(len(users), n)
             self.client.post('/users/new/', self.correct_user_data, content_type='application/json')
+
+    def test_get_all_books(self):
+        new_user_id = self.create_correct_user(self.correct_user_data)
+        for n in range(10):
+            books_response = self.client.get(f'/users/{new_user_id}/books/')
+            books = books_response.json()
+            self.assertEqual(len(books), n)
+            book = Book(title='book', text='...', author='username', cost=n)
+            book.save()
