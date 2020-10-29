@@ -72,3 +72,9 @@ class AccountTestCase(TestCase):
             month_pay_date,
             date(2021, 1, 5)
         )
+
+    def test_get_all_users(self):
+        for n in range(10):
+            users = self.client.get('/users/').json()
+            self.assertEqual(len(users), n)
+            self.client.post('/users/new/', self.correct_user_data, content_type='application/json')
